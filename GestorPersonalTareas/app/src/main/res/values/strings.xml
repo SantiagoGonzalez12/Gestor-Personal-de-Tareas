@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Gestor Personal de Tareas</string>
+    <string name="titulo_principal">Mis tareas</string>
+    <string name="tareas_vacias">No tienes tareas pendientes</string>
+    <string name="aniadir_tarea">Nueva tarea</string>
+    <string name="filtro_pendientes">Mostrar solo pendientes</string>
+    <string name="sin_tareas">No hay tareas registradas</string>
+</resources>
