@@ -9,7 +9,7 @@
     <string name="editar">Editar</string>
     <string name="eliminar">Eliminar</string>
     <string name="titulo_confirmacion">Eliminar tarea</string>
-    <string name="mensaje_confirmacion">¿Seguro que quieres eliminar la tarea «%1$s»?</string>
+    <string name="mensaje_confirmacion">¿Seguro que quieres eliminar la tarea "%1$s"?</string>
     <string name="confirmar">Confirmar</string>
     <string name="cancelar">Cancelar</string>
     <string name="form_nueva_tarea">Nueva tarea</string>
