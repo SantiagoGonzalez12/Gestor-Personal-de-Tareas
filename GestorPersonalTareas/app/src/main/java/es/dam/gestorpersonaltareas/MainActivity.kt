@@ -22,9 +22,16 @@ import es.dam.gestorpersonaltareas.preferences.guardarFiltro
 import es.dam.gestorpersonaltareas.preferences.observarFiltro
 import es.dam.gestorpersonaltareas.ui.PantallaFormulario
 import es.dam.gestorpersonaltareas.ui.PantallaPrincipal
+import es.dam.gestorpersonaltareas.ui.PantallaTareasEjemplo
 import es.dam.gestorpersonaltareas.ui.theme.GestorPersonalTareasTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+
+private object Destinos {
+    const val PRINCIPAL = "principal"
+    const val FORMULARIO = "formulario"
+    const val EJEMPLO = "ejemplo"
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,91 +47,109 @@ class MainActivity : ComponentActivity() {
                 val soloPendientes by flujoFiltro.collectAsStateWithLifecycle(initialValue = false)
 
                 val scope = rememberCoroutineScope()
-                var mostrandoFormulario by rememberSaveable { mutableStateOf(false) }
+                var pantallaActual by rememberSaveable { mutableStateOf(Destinos.PRINCIPAL) }
                 var tareaAEditarId by rememberSaveable { mutableStateOf<Long?>(null) }
                 val tareaAEditar = tareas.find { it.id == tareaAEditarId }
 
-                BackHandler(enabled = mostrandoFormulario) {
-                    mostrandoFormulario = false
-                    tareaAEditarId = null
+                BackHandler(enabled = pantallaActual != Destinos.PRINCIPAL) {
+                    if (pantallaActual == Destinos.FORMULARIO) {
+                        tareaAEditarId = null
+                    }
+                    pantallaActual = Destinos.PRINCIPAL
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (mostrandoFormulario) {
-                        PantallaFormulario(
-                            tareaInicial = tareaAEditar,
-                            alGuardar = { titulo, descripcion, prioridad ->
-                                val actual = tareaAEditar
-                                if (actual == null) {
-                                    dao.insertar(
-                                        Tarea(
-                                            titulo = titulo,
-                                            descripcion = descripcion,
-                                            prioridad = prioridad
+                    when (pantallaActual) {
+                        Destinos.FORMULARIO -> {
+                            PantallaFormulario(
+                                tareaInicial = tareaAEditar,
+                                alGuardar = { titulo, descripcion, prioridad ->
+                                    val actual = tareaAEditar
+                                    if (actual == null) {
+                                        dao.insertar(
+                                            Tarea(
+                                                titulo = titulo,
+                                                descripcion = descripcion,
+                                                prioridad = prioridad
+                                            )
                                         )
-                                    )
-                                } else {
-                                    dao.actualizar(
-                                        actual.copy(
-                                            titulo = titulo,
-                                            descripcion = descripcion,
-                                            prioridad = prioridad
+                                    } else {
+                                        dao.actualizar(
+                                            actual.copy(
+                                                titulo = titulo,
+                                                descripcion = descripcion,
+                                                prioridad = prioridad
+                                            )
                                         )
-                                    )
-                                }
-                                mostrandoFormulario = false
-                                tareaAEditarId = null
-                            },
-                            alCancelar = {
-                                mostrandoFormulario = false
-                                tareaAEditarId = null
-                            },
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                    } else {
-                        PantallaPrincipal(
-                            tareas = tareas,
-                            soloPendientes = soloPendientes,
-                            alCambiarFiltro = { nuevoValor ->
-                                scope.launch {
-                                    try {
-                                        guardarFiltro(applicationContext, nuevoValor)
-                                    } catch (e: CancellationException) {
-                                        throw e
-                                    } catch (_: Exception) {
                                     }
-                                }
-                            },
-                            alCambiarCompletada = { tareaPulsada, marcada ->
-                                scope.launch {
-                                    try {
-                                        dao.actualizar(tareaPulsada.copy(completada = marcada))
-                                    } catch (e: CancellationException) {
-                                        throw e
-                                    } catch (_: Exception) {
+                                    tareaAEditarId = null
+                                    pantallaActual = Destinos.PRINCIPAL
+                                },
+                                alCancelar = {
+                                    tareaAEditarId = null
+                                    pantallaActual = Destinos.PRINCIPAL
+                                },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+
+                        Destinos.EJEMPLO -> {
+                            PantallaTareasEjemplo(
+                                alVolver = {
+                                    pantallaActual = Destinos.PRINCIPAL
+                                },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+
+                        else -> {
+                            PantallaPrincipal(
+                                tareas = tareas,
+                                soloPendientes = soloPendientes,
+                                alCambiarFiltro = { nuevoValor ->
+                                    scope.launch {
+                                        try {
+                                            guardarFiltro(applicationContext, nuevoValor)
+                                        } catch (e: CancellationException) {
+                                            throw e
+                                        } catch (_: Exception) {
+                                        }
                                     }
-                                }
-                            },
-                            alEditar = { tarea ->
-                                tareaAEditarId = tarea.id
-                                mostrandoFormulario = true
-                            },
-                            alEliminar = { tareaBorrada ->
-                                scope.launch {
-                                    try {
-                                        dao.eliminar(tareaBorrada)
-                                    } catch (e: CancellationException) {
-                                        throw e
-                                    } catch (_: Exception) {
+                                },
+                                alCambiarCompletada = { tareaPulsada, marcada ->
+                                    scope.launch {
+                                        try {
+                                            dao.actualizar(tareaPulsada.copy(completada = marcada))
+                                        } catch (e: CancellationException) {
+                                            throw e
+                                        } catch (_: Exception) {
+                                        }
                                     }
-                                }
-                            },
-                            alNuevaTarea = {
-                                tareaAEditarId = null
-                                mostrandoFormulario = true
-                            },
-                            modifier = Modifier.padding(innerPadding)
-                        )
+                                },
+                                alEditar = { tarea ->
+                                    tareaAEditarId = tarea.id
+                                    pantallaActual = Destinos.FORMULARIO
+                                },
+                                alEliminar = { tareaBorrada ->
+                                    scope.launch {
+                                        try {
+                                            dao.eliminar(tareaBorrada)
+                                        } catch (e: CancellationException) {
+                                            throw e
+                                        } catch (_: Exception) {
+                                        }
+                                    }
+                                },
+                                alNuevaTarea = {
+                                    tareaAEditarId = null
+                                    pantallaActual = Destinos.FORMULARIO
+                                },
+                                alVerTareasEjemplo = {
+                                    pantallaActual = Destinos.EJEMPLO
+                                },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
                     }
                 }
             }

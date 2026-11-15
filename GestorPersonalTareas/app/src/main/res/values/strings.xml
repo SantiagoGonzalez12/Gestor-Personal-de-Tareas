@@ -21,4 +21,18 @@
     <string name="form_titulo_menor_3">El título no puede ser menos de 3 caracteres</string>
     <string name="form_prioridad_no_valida">La prioridad no es válida</string>
     <string name="error_guardar_tarea">No se pudo guardar la tarea</string>
+    <string name="ver_tareas_ejemplo">Tareas de ejemplo</string>
+    <string name="titulo_ejemplo">Tareas de ejemplo</string>
+    <string name="subtitulo_ejemplo">Datos externos de muestra (no se guardan en tus tareas)</string>
+    <string name="cargar_tareas_ejemplo">Cargar tareas</string>
+    <string name="reintentar">Reintentar</string>
+    <string name="volver">Volver</string>
+    <string name="ejemplo_inicial">Pulsa "Cargar tareas" para consultar el servicio externo.</string>
+    <string name="ejemplo_vacio">El servidor no devolvió tareas de ejemplo.</string>
+    <string name="item_tarea_ejemplo">#%1$d - %2$s</string>
+    <string name="estado_completada">Estado: Completada</string>
+    <string name="estado_pendiente">Estado: Pendiente</string>
+    <string name="error_http">Error del servidor</string>
+    <string name="error_json">Los datos recibidos no son compatibles</string>
+    <string name="error_red">Sin conexión a Internet. Inténtalo de nuevo</string>
 </resources>

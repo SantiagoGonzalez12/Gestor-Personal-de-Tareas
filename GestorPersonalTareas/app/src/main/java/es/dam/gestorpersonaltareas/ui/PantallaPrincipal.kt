@@ -69,6 +69,7 @@ fun PantallaPrincipal(
     alEditar: (Tarea) -> Unit,
     alEliminar: (Tarea) -> Unit,
     alNuevaTarea: () -> Unit,
+    alVerTareasEjemplo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var tareaAEliminar by remember { mutableStateOf<Tarea?>(null) }
@@ -108,6 +109,13 @@ fun PantallaPrincipal(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = stringResource(R.string.aniadir_tarea))
+        }
+
+        OutlinedButton(
+            onClick = alVerTareasEjemplo,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = stringResource(R.string.ver_tareas_ejemplo))
         }
 
         val tareasVisibles = if (soloPendientes) {
