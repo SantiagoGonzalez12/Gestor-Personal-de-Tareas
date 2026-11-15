@@ -20,4 +20,5 @@
     <string name="form_titulo_vacio">El título no puede estar vacío</string>
     <string name="form_titulo_menor_3">El título no puede ser menos de 3 caracteres</string>
     <string name="form_prioridad_no_valida">La prioridad no es válida</string>
+    <string name="error_guardar_tarea">No se pudo guardar la tarea</string>
 </resources>

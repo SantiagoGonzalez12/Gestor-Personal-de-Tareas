@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import es.dam.gestorpersonaltareas.R
 import es.dam.gestorpersonaltareas.model.Prioridades
 import es.dam.gestorpersonaltareas.model.Tarea
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 fun validarTitulo(
     texto: String,
@@ -57,6 +60,7 @@ fun validarPrioridad(
 fun SelectorPrioridad(
     prioridadActual: String,
     alSeleccionar: (String) -> Unit,
+    habilitado: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var expandido by remember { mutableStateOf(false) }
@@ -64,6 +68,7 @@ fun SelectorPrioridad(
     Box(modifier = modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expandido = true },
+            enabled = habilitado,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = stringResource(R.string.etiqueta_prioridad, prioridadActual))
@@ -88,7 +93,7 @@ fun SelectorPrioridad(
 @Composable
 fun PantallaFormulario(
     tareaInicial: Tarea?,
-    alGuardar: (titulo: String, descripcion: String, prioridad: String) -> Unit,
+    alGuardar: suspend (titulo: String, descripcion: String, prioridad: String) -> Unit,
     alCancelar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -98,10 +103,15 @@ fun PantallaFormulario(
         mutableStateOf(tareaInicial?.prioridad ?: Prioridades.MEDIA)
     }
     var intentoGuardar by rememberSaveable { mutableStateOf(false) }
+    var guardando by remember { mutableStateOf(false) }
+    var errorGuardado by remember { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
 
     val msgTituloVacio = stringResource(R.string.form_titulo_vacio)
     val msgTituloCorto = stringResource(R.string.form_titulo_menor_3)
     val msgPrioridadInvalida = stringResource(R.string.form_prioridad_no_valida)
+    val msgErrorGuardar = stringResource(R.string.error_guardar_tarea)
 
     val errorTitulo = validarTitulo(titulo, msgTituloVacio, msgTituloCorto)
     val errorPrioridad = validarPrioridad(prioridad, msgPrioridadInvalida)
@@ -128,6 +138,7 @@ fun PantallaFormulario(
             onValueChange = { titulo = it },
             label = { Text(stringResource(R.string.form_titulo)) },
             singleLine = true,
+            enabled = !guardando,
             isError = intentoGuardar && errorTitulo != null,
             supportingText = {
                 if (intentoGuardar && errorTitulo != null) {
@@ -142,17 +153,27 @@ fun PantallaFormulario(
             onValueChange = { descripcion = it },
             label = { Text(stringResource(R.string.form_descripcion)) },
             minLines = 3,
+            enabled = !guardando,
             modifier = Modifier.fillMaxWidth()
         )
 
         SelectorPrioridad(
             prioridadActual = prioridad,
-            alSeleccionar = { prioridad = it }
+            alSeleccionar = { prioridad = it },
+            habilitado = !guardando
         )
 
         if (intentoGuardar && errorPrioridad != null) {
             Text(
                 text = errorPrioridad,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        errorGuardado?.let { mensajeError ->
+            Text(
+                text = mensajeError,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -164,15 +185,30 @@ fun PantallaFormulario(
         ) {
             OutlinedButton(
                 onClick = alCancelar,
+                enabled = !guardando,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.cancelar))
             }
             Button(
+                enabled = !guardando,
                 onClick = {
+                    if (guardando) return@Button
                     intentoGuardar = true
                     if (formularioValido) {
-                        alGuardar(titulo.trim(), descripcion.trim(), prioridad)
+                        guardando = true
+                        errorGuardado = null
+                        scope.launch {
+                            try {
+                                alGuardar(titulo.trim(), descripcion.trim(), prioridad)
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (_: Exception) {
+                                errorGuardado = msgErrorGuardar
+                            } finally {
+                                guardando = false
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f)

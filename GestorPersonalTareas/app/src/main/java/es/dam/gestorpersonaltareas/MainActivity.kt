@@ -11,14 +11,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import es.dam.gestorpersonaltareas.model.Prioridades
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import es.dam.gestorpersonaltareas.data.AppDatabase
 import es.dam.gestorpersonaltareas.model.Tarea
+import es.dam.gestorpersonaltareas.preferences.guardarFiltro
+import es.dam.gestorpersonaltareas.preferences.observarFiltro
 import es.dam.gestorpersonaltareas.ui.PantallaFormulario
 import es.dam.gestorpersonaltareas.ui.PantallaPrincipal
 import es.dam.gestorpersonaltareas.ui.theme.GestorPersonalTareasTheme
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,24 +32,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GestorPersonalTareasTheme {
-                var tareas by remember {
-                    mutableStateOf(
-                        listOf(
-                            Tarea(
-                                id = 1,
-                                titulo = "Estudiar Jetpack Compose",
-                                prioridad = Prioridades.ALTA
-                            ),
-                            Tarea(
-                                id = 2,
-                                titulo = "Preparar emuladores",
-                                prioridad = Prioridades.MEDIA,
-                                completada = true
-                            )
-                        )
-                    )
-                }
-                var soloPendientes by rememberSaveable { mutableStateOf(false) }
+                val dao = remember { AppDatabase.obtener(applicationContext).tareaDao() }
+                val flujoTareas = remember(dao) { dao.observar() }
+                val tareas by flujoTareas.collectAsStateWithLifecycle(initialValue = emptyList())
+
+                val flujoFiltro = remember { observarFiltro(applicationContext) }
+                val soloPendientes by flujoFiltro.collectAsStateWithLifecycle(initialValue = false)
+
+                val scope = rememberCoroutineScope()
                 var mostrandoFormulario by rememberSaveable { mutableStateOf(false) }
                 var tareaAEditarId by rememberSaveable { mutableStateOf<Long?>(null) }
                 val tareaAEditar = tareas.find { it.id == tareaAEditarId }
@@ -59,26 +55,22 @@ class MainActivity : ComponentActivity() {
                             tareaInicial = tareaAEditar,
                             alGuardar = { titulo, descripcion, prioridad ->
                                 val actual = tareaAEditar
-                                tareas = if (actual == null) {
-                                    val nuevoId = (tareas.maxOfOrNull { it.id } ?: 0L) + 1L
-                                    tareas + Tarea(
-                                        id = nuevoId,
-                                        titulo = titulo,
-                                        descripcion = descripcion,
-                                        prioridad = prioridad
+                                if (actual == null) {
+                                    dao.insertar(
+                                        Tarea(
+                                            titulo = titulo,
+                                            descripcion = descripcion,
+                                            prioridad = prioridad
+                                        )
                                     )
                                 } else {
-                                    tareas.map { tarea ->
-                                        if (tarea.id == actual.id) {
-                                            tarea.copy(
-                                                titulo = titulo,
-                                                descripcion = descripcion,
-                                                prioridad = prioridad
-                                            )
-                                        } else {
-                                            tarea
-                                        }
-                                    }
+                                    dao.actualizar(
+                                        actual.copy(
+                                            titulo = titulo,
+                                            descripcion = descripcion,
+                                            prioridad = prioridad
+                                        )
+                                    )
                                 }
                                 mostrandoFormulario = false
                                 tareaAEditarId = null
@@ -93,13 +85,23 @@ class MainActivity : ComponentActivity() {
                         PantallaPrincipal(
                             tareas = tareas,
                             soloPendientes = soloPendientes,
-                            alCambiarFiltro = { nuevoValor -> soloPendientes = nuevoValor },
+                            alCambiarFiltro = { nuevoValor ->
+                                scope.launch {
+                                    try {
+                                        guardarFiltro(applicationContext, nuevoValor)
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (_: Exception) {
+                                    }
+                                }
+                            },
                             alCambiarCompletada = { tareaPulsada, marcada ->
-                                tareas = tareas.map { tareaActual ->
-                                    if (tareaActual.id == tareaPulsada.id) {
-                                        tareaActual.copy(completada = marcada)
-                                    } else {
-                                        tareaActual
+                                scope.launch {
+                                    try {
+                                        dao.actualizar(tareaPulsada.copy(completada = marcada))
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (_: Exception) {
                                     }
                                 }
                             },
@@ -108,7 +110,14 @@ class MainActivity : ComponentActivity() {
                                 mostrandoFormulario = true
                             },
                             alEliminar = { tareaBorrada ->
-                                tareas = tareas.filter { it.id != tareaBorrada.id }
+                                scope.launch {
+                                    try {
+                                        dao.eliminar(tareaBorrada)
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (_: Exception) {
+                                    }
+                                }
                             },
                             alNuevaTarea = {
                                 tareaAEditarId = null
