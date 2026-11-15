@@ -12,4 +12,12 @@
     <string name="mensaje_confirmacion">¿Seguro que quieres eliminar la tarea «%1$s»?</string>
     <string name="confirmar">Confirmar</string>
     <string name="cancelar">Cancelar</string>
+    <string name="form_nueva_tarea">Nueva tarea</string>
+    <string name="form_editar_tarea">Editar tarea</string>
+    <string name="form_titulo">Título</string>
+    <string name="form_descripcion">Descripción (opcional)</string>
+    <string name="form_guardar">Guardar</string>
+    <string name="form_titulo_vacio">El título no puede estar vacío</string>
+    <string name="form_titulo_menor_3">El título no puede ser menos de 3 caracteres</string>
+    <string name="form_prioridad_no_valida">La prioridad no es válida</string>
 </resources>
